@@ -1,8 +1,8 @@
 package com.greencore.versioncontrol.controller;
 
-import com.greencore.versioncontrol.dto.LoginRequest;
 import com.greencore.versioncontrol.model.User;
-import com.greencore.versioncontrol.repository.UserRepository;
+import com.greencore.versioncontrol.service.UserService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,22 +13,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/api")
+@RequestMapping("/api/users")
 public class LoginController {
-
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest){
-        User user = userRepository.findByUsername(loginRequest.getUsername());
-        if(user != null && passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
-            return ResponseEntity.ok("Login successful");
-        } else{
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
-        }
+    @PostMapping("/register")
+    public ResponseEntity<User> responseEntity(@RequestBody User user){
+        User createUser = userService.createUser(user);
+        return ResponseEntity.ok(createUser);
     }
 }
