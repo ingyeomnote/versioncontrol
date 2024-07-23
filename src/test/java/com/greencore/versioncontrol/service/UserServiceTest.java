@@ -3,6 +3,10 @@ package com.greencore.versioncontrol.service;
 import com.greencore.versioncontrol.model.User;
 import com.greencore.versioncontrol.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -10,34 +14,42 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
-    @Autowired
+    @InjectMocks
     private UserService userService;
 
-    @MockBean
+    @Mock
     private PasswordEncoder passwordEncoder;
 
-    @MockBean
+    @Mock
     private UserRepository userRepository;
 
     @Test
     public void testCreateUser(){
-        User user = new User();
-        user.setUsername("jimin3");
-        user.setPassword("password3");
-        user.setEmail("jimin3@naver.com");
-
+        User user = createUserTest();
         when(passwordEncoder.encode(any(String.class))).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
 
-        // 서비스 메서드 호출
+        //서비스 메서드 호출
         User createdUser = userService.createUser(user);
 
         assertNotNull(createdUser);
         assertEquals("jimin", createdUser.getUsername());
         assertEquals("jimin@naver.com", createdUser.getEmail());
+        assertEquals("encodedPassword", createdUser.getPassword());
+
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    private User createUserTest() {
+        User user = new User();
+        user.setUsername("jimin");
+        user.setPassword("password");
+        user.setEmail("jimin@naver.com");
+        return user;
     }
 }
