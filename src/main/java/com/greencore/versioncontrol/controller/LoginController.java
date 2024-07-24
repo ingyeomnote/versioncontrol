@@ -2,26 +2,56 @@ package com.greencore.versioncontrol.controller;
 
 import com.greencore.versioncontrol.model.User;
 import com.greencore.versioncontrol.service.UserService;
+import com.greencore.versioncontrol.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 @RequestMapping("/api/users")
 public class LoginController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    // 생성자를 통해 의존성을 주입합니다.
-    public LoginController(UserService userService) {
+    @Autowired
+    public LoginController(UserService userService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> responseEntity(@RequestBody User user) {
-        User createUser = userService.createUser(user);
-        return ResponseEntity.ok(createUser);
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        if (userService.createUser(user) != null) {
+            return ResponseEntity.ok("User registered successfully");
+        }
+        return ResponseEntity.badRequest().body("User registration failed");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody User user){
+        User authenticatedUser = userService.authenticateUser(user.getUsername(), user.getPassword());
+        if(authenticatedUser != null){
+            String token = jwtUtil.generateToken(authenticatedUser.getUsername());
+            return ResponseEntity.ok(new JwtResponse(token));
+        }
+        return ResponseEntity.status(401).body("Invalid credentials");
+    }
+
+    public class JwtResponse {
+        private String token;
+        public JwtResponse(String token) {
+            this.token = token;
+        }
+        public String getToken(){
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
     }
 }
