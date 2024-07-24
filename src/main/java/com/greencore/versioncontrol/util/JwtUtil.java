@@ -28,11 +28,15 @@ public class JwtUtil {
 
     // JWT 토큰 생성
     public String generateToken(String username){
+        return buildToken(username, expiration);
+    }
+
+    public String buildToken(String username, long expiration){
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
@@ -42,15 +46,15 @@ public class JwtUtil {
         return (tokenUsername.equals(username) && !isTokenExpired(token));
     }
 
-    private String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject); // ::참조 표현식
     }
 
     private Date extractExpiration(String token){
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
