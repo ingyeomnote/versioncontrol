@@ -44,6 +44,7 @@ public class SpringSecurity {
                 )
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        .requestMatchers("/api/users/me").authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -66,7 +67,7 @@ public class SpringSecurity {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000")); // Arrays.asList -> List<String> 생성
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // 허용된 HTTP 메소드
-        configuration.setAllowedHeaders(Arrays.asList("*")); // 모든 헤더 허용
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Authorization-refresh","Cache-Control", "Content-Type")); // 모든 헤더 허용
         configuration.setAllowCredentials(true); // 자격 증명(쿠키 등)을 허용
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration); // 모든 경로에 대해 위의 CORS 구성을 적용

@@ -21,8 +21,8 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    private Key getSigningKey(){
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+    private Key getSigningKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(secret.replaceAll("\\s+", "")); // 공백제거
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -36,7 +36,7 @@ public class JwtUtil {
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
