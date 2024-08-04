@@ -3,8 +3,12 @@ package com.greencore.versioncontrol.controller;
 import com.greencore.versioncontrol.model.User;
 import com.greencore.versioncontrol.service.UserService;
 import com.greencore.versioncontrol.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,7 +43,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody User user){
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody User user, HttpServletResponse response){
       try {
           // 인증 로직
           Authentication authentication = authenticationManager.authenticate(
@@ -50,16 +54,35 @@ public class LoginController {
           final UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
 
           // 토큰 생성
-          final String jwt = jwtUtil.generateToken(userDetails.getUsername());
+          final String accessToken = jwtUtil.generateToken(userDetails.getUsername());
+          final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
 
-          System.out.println("Login successful for user : " + user.getUsername());
-          System.out.println("Generate token : " + jwt);
+          // 리프레시 토큰을 Http-only 쿠키로 설정
+          ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+                  .httpOnly(true)
+                  .secure(true) // HTTPS를 사용하는 경우에만 true로 설정
+                  .path("/api/users/refresh-token")
+                  .maxAge(7 * 24 * 60 * 60) // 7일
+                  .build();
 
-          return ResponseEntity.ok(new JwtResponse(jwt));
+          response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+          return ResponseEntity.ok(new JwtResponse(accessToken));
       } catch (AuthenticationException e){
-          System.out.println("Login failed for user: " + user.getUsername() + e);
           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
       }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request){
+        String refreshToken = jwtUtil.getRefreshTokenFromCookie(request);
+        if(refreshToken != null && jwtUtil.validateRefreshToken(refreshToken)){
+            String username = jwtUtil.extractUsername(refreshToken);
+            UserDetails userDetails = userService.loadUserByUsername(username);
+            String newAccessToken = jwtUtil.generateToken(userDetails.getUsername());
+            return ResponseEntity.ok(new JwtResponse((newAccessToken)));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
     }
 
     @GetMapping("/me")
