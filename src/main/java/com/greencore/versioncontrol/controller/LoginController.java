@@ -44,33 +44,34 @@ public class LoginController {
 
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody User user, HttpServletResponse response){
-      try {
-          // 인증 로직
-          Authentication authentication = authenticationManager.authenticate(
-                  new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
-          );
+        try {
+            // 인증 로직
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
+            );
 
-          // 사용자 체크
-          final UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
+            // 사용자 체크
+            final UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
 
-          // 토큰 생성
-          final String accessToken = jwtUtil.generateToken(userDetails.getUsername());
-          final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
+            // 토큰 생성
+            final String accessToken = jwtUtil.generateToken(userDetails.getUsername());
 
-          // 리프레시 토큰을 Http-only 쿠키로 설정
-          ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-                  .httpOnly(true)
-                  .secure(true) // HTTPS를 사용하는 경우에만 true로 설정
-                  .path("/api/users/refresh-token")
-                  .maxAge(7 * 24 * 60 * 60) // 7일
-                  .build();
+            final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
 
-          response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+            // 리프레시 토큰을 Http-only 쿠키로 설정
+            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
+                    .httpOnly(true)
+                    .secure(true) // HTTPS를 사용하는 경우에만 true로 설정
+                    .path("/api/users/refresh-token")
+                    .maxAge(7 * 24 * 60 * 60) // 7일
+                    .build();
 
-          return ResponseEntity.ok(new JwtResponse(accessToken));
-      } catch (AuthenticationException e){
-          return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
-      }
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+            return ResponseEntity.ok(new JwtResponse(accessToken));
+        } catch (AuthenticationException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
+        }
     }
 
     @PostMapping("/refresh-token")
@@ -105,14 +106,14 @@ public class LoginController {
     }
 
     public class JwtResponse {
-        private final String jwt;
+        private final String accessToken;
 
-        public JwtResponse(String jwt) {
-            this.jwt = jwt;
+        public JwtResponse(String accessToken) {
+            this.accessToken = accessToken;
         }
 
-        public String getJwt(){
-            return jwt;
+        public String getAccessToken() {
+            return accessToken;
         }
     }
 }
